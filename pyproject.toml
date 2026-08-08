@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spotscanner"
+dynamic = ["version"]
+description = "Quantitative analysis of fungal spot-test plates"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "Kento Yanagisawa" },
+]
+keywords = ["fungal genetics", "image analysis", "spot test"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Image Processing",
+]
+dependencies = [
+  "numpy>=1.26,<3",
+  "opencv-python-headless>=4.8,<6",
+]
+
+[project.scripts]
+spotscanner = "spotscanner.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/KentoYana/spotscanner"
+Issues = "https://github.com/KentoYana/spotscanner/issues"
+
+[tool.setuptools]
+packages = [
+  "spotscanner",
+  "spotscanner.resources",
+  "spotscanner.resources.marker",
+  "spotscanner.resources.template",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "spotscanner.__version__" }
+
+[tool.setuptools.package-data]
+spotscanner = [
+  "resources/marker/*.png",
+  "resources/marker/*.tif",
+  "resources/template/*.pdf",
+  "resources/template/*.tex",
+  "resources/template/*.1",
+]

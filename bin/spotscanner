@@ -1,8 +1,0 @@
-#!/bin/zsh
-# SpotScanner launcher
-SPOTSCANNER_ROOT="${SPOTSCANNER_ROOT:-"$HOME/bin/spotscanner"}"
-
-# Python が spotscanner パッケージを見つけられるように PYTHONPATH を通す
-export PYTHONPATH="$SPOTSCANNER_ROOT${PYTHONPATH:+:$PYTHONPATH}"
-
-exec python3 -m spotscanner "$@"
