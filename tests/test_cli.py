@@ -34,8 +34,8 @@ def run_module(*arguments, cwd=None):
 
 
 class PackageTests(unittest.TestCase):
-    def test_package_import_and_development_version(self):
-        self.assertEqual(spotscanner.__version__, "8.0.0.dev0")
+    def test_package_import_and_release_version(self):
+        self.assertEqual(spotscanner.__version__, "8.0.0")
 
     def test_packaged_resources_exist(self):
         self.assertTrue((RESOURCE_ROOT / "marker" / "Marker16.png").is_file())
@@ -71,7 +71,7 @@ class CliTests(unittest.TestCase):
     def test_version(self):
         result = run_module("--version")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("SpotScanner v8.0.0.dev0", result.stdout)
+        self.assertIn("SpotScanner v8.0.0", result.stdout)
 
     def test_console_script(self):
         executable = Path(sys.executable).with_name("spotscanner")
@@ -84,7 +84,7 @@ class CliTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("SpotScanner v8.0.0.dev0", result.stdout)
+        self.assertIn("SpotScanner v8.0.0", result.stdout)
 
     def test_manual_output_uses_packaged_resource(self):
         result = run_module("--output", "manual")
@@ -105,7 +105,7 @@ class CliTests(unittest.TestCase):
             result = run_module("--output", "citation", cwd=workdir)
             self.assertEqual(result.returncode, 0, result.stderr)
             citation = Path(workdir, "spotscanner.bib").read_text(encoding="utf-8")
-            self.assertIn("version 8.0.0.dev0", citation)
+            self.assertIn("version 8.0.0", citation)
 
 
 class AnalysisSmokeTests(unittest.TestCase):
