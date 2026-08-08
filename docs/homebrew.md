@@ -19,7 +19,8 @@ Before publishing a Formula:
    `brew install --build-from-source KentoYana/tap/spotscanner`, and
    `brew test KentoYana/tap/spotscanner` on a clean macOS system.
 
-No tag or Formula is created by the 8.0 development branch itself.
+A release-preparation branch does not itself create a tag or Formula. Create
+those only after the final package and regression checks pass.
 
 ## Dependency model
 

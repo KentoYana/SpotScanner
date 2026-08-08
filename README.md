@@ -4,9 +4,8 @@ SpotScanner is a command-line tool for quantitative analysis of fungal
 spot-test plates. It detects a printed marker, segments the image into a fixed
 grid, measures colony growth, and writes CSV data and diagnostic images.
 
-SpotScanner 8.0 is currently under development. The package version is
-`8.0.0.dev0`; no final 8.0 release or Homebrew formula is implied by this
-development version.
+SpotScanner 8.0 is distributed as a standard Python package with a generated
+`spotscanner` command. The package version for this release is `8.0.0`.
 
 ## Features
 
@@ -70,8 +69,8 @@ inside the installed Python package.
 
 ### Homebrew status
 
-Homebrew installation is a planned release step and is not available from this
-development branch yet. The intended commands after a formula is published are:
+The Homebrew formula is maintained separately in the project tap. After the
+formula is added to the tap, the installation commands are:
 
 ```bash
 brew install KentoYana/tap/spotscanner
