@@ -195,11 +195,11 @@ def main(argv=None):
     )
     mode = parser.add_mutually_exclusive_group()
     image = parser.add_mutually_exclusive_group()
-    parser.add_argument('-v', '--version', 
+    parser.add_argument('-v', '--version',
                         action='store_true',
                         help="Show version information and citation, then exit."
                         )
-    parser.add_argument('-e', '--example', 
+    parser.add_argument('-e', '--example',
                         action='store_true',
                         help="Show usage examples and exit."
                         )
@@ -207,7 +207,7 @@ def main(argv=None):
                         action='store_true',
                         help='View the SpotScanner manual.'
                         )
-    parser.add_argument('-o', '--output', 
+    parser.add_argument('-o', '--output',
                         choices=['manual', 'marker-pdf', 'marker-tex', 'citation'],
                         help=(
                             'Output auxiliary resources: '
@@ -217,28 +217,28 @@ def main(argv=None):
                             '"citation" writes a BibTeX entry (spotscanner.bib).'
                             )
                         )
-    mode.add_argument('-a', '--analyze', 
+    mode.add_argument('-a', '--analyze',
                         choices=['pipette', 'replicator'],
                         help='Choose analysis mode (pipette: 4×6 matrix, replicator: 8×12 matrix).'
                         )
     image.add_argument('-s', '--single',
                         help='Analyze only the specified image.'
                         )
-    image.add_argument('-m', '--multi', 
+    image.add_argument('-m', '--multi',
                         action='store_true',
                         help='Analyze all images in the current directory.'
                         )
-    parser.add_argument('-t', '--threshold', 
-                        type=int, 
+    parser.add_argument('-t', '--threshold',
+                        type=int,
                         choices=range(1, 11),
                         help='Threshold for marker recognition (default: 7).'
                         )
-    
+
     args = parser.parse_args(argv)
     pwd = os.getcwd()
     # bin_dir = os.path.dirname(__file__)
     initial_time = datetime.datetime.now()
-    
+
     if args.version:
         print(f'SpotScanner v{__version__}')
         print(
