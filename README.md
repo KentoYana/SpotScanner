@@ -7,7 +7,7 @@ grid, measures colony growth, and writes CSV data and diagnostic images.
 SpotScanner 8.0 is distributed through the
 [KentoYana Homebrew tap](https://github.com/KentoYana/homebrew-tap) and as a
 standard Python package. Both installation methods provide a `spotscanner`
-command. The current release is `8.0.0`.
+command. The current release is `8.0.1`.
 
 ## Features
 
