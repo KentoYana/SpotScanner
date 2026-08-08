@@ -182,6 +182,30 @@ checks package import, both CLI launch paths, packaged resources, help/version,
 auxiliary output, and a small synthetic-image analysis. A separate job builds
 the wheel and source distribution.
 
+### SpotScanner 7 result regression
+
+The published manuscript resource repository contains original plate images
+and their SpotScanner 7.0.0 CSV results. It is intentionally kept outside this
+repository because it is large. From a SpotScanner source checkout, rerun every
+archived image with the current source and compare all colony values after
+two-decimal rounding:
+
+```bash
+git clone https://github.com/KentoYana/Resource_Article_DDT_hH3-K4R_01.git
+PYENV_VERSION=3.14.6 pyenv exec python tools/compare_v7_results.py \
+  /path/to/Resource_Article_DDT_hH3-K4R_01 \
+  --report /tmp/spotscanner-v7-regression.json
+```
+
+The comparison ignores the run timestamp but requires identical image names,
+thresholds, row/column coordinates, and `Colony` values by default. Use
+`--limit N` for a quick sample or `--tolerance VALUE` only when an explicitly
+documented numerical tolerance has been approved.
+
+The full 304-image baseline, dependency-version comparison, observed 0.12
+percentage-point compatibility envelope, and interpretation are documented in
+[SpotScanner 7 numerical regression](docs/v7-regression.md).
+
 ## License
 
 SpotScanner is licensed under the MIT License.

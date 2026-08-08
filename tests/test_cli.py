@@ -14,6 +14,7 @@ from spotscanner import cli
 PACKAGE_ROOT = Path(spotscanner.__file__).resolve().parent
 PROJECT_ROOT = PACKAGE_ROOT.parent
 RESOURCE_ROOT = PACKAGE_ROOT / "resources"
+REGRESSION_TOOL = PROJECT_ROOT / "tools" / "compare_v7_results.py"
 
 
 def run_module(*arguments, cwd=None):
@@ -40,6 +41,16 @@ class PackageTests(unittest.TestCase):
         self.assertTrue((RESOURCE_ROOT / "marker" / "Marker16.png").is_file())
         self.assertTrue((RESOURCE_ROOT / "template" / "marker.pdf").is_file())
         self.assertTrue((RESOURCE_ROOT / "template" / "spotscanner.1").is_file())
+
+    def test_v7_regression_tool_help(self):
+        result = subprocess.run(
+            [sys.executable, REGRESSION_TOOL, "--help"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Resource_Article_DDT_hH3-K4R_01", result.stdout)
 
 
 class CliTests(unittest.TestCase):
