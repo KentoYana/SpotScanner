@@ -1,5 +1,4 @@
-%\documentclass[paper=A5, article, jafontsize=12Q, jafontscale=0.92, landscape, final]{jlreq}
-\documentclass[paper=A4, head_space=20mm, foot_space=20mm, article, jafontsize=12Q, jafontscale=0.92, final]{jlreq} %2 up
+\documentclass[paper=A4, head_space=20mm, foot_space=20mm, article, jafontsize=12Q, jafontscale=0.92, final]{jlreq} % 2-up
 
 \usepackage[no-math]{fontspec}
 \usepackage[hiresbb]{graphicx}
@@ -7,10 +6,10 @@
 \usepackage{tikz}
 \usepackage[
    unicode,%
-   bookmarks=true, %
+   bookmarks=true,%
    bookmarksnumbered=true,%
    pdfusetitle,%
-   pdflang=ja-JP, %
+   pdflang=ja-JP,%
    hidelinks%
 ]{hyperref}
 \pagestyle{empty}
@@ -18,52 +17,67 @@
 \title{Markers for SpotScanner}
 \author{Kento Yanagisawa}
 
+\tikzset{
+   TargetMarker/.pic={
+      \filldraw[white](0, 0) rectangle(5, 5);
+      \draw[line width=1.5pt](0, 0) rectangle(5, 5);
+      \filldraw[black](1, 1) rectangle(4, 4);
+      \filldraw[white](2, 2) rectangle(3, 3);
+   }
+}
+
+\newcommand{\SpotScannerCommand}[1]{%
+   \draw[white](64, 90) node{\fontspec{Monaco}spotscanner --analyze #1 [-s SINGLE | -m] [-t {1,2,3,4,5,6,7,8,9,10}]};%
+}
+
+\newcommand{\SpotScannerFooter}{%
+   \draw[white](64, -5) node{\footnotesize\fontspec{Monaco}SpotScanner, developed by Kento Yanagisawa};%
+}
+
+\newcommand{\PipetteGuides}{%
+   \foreach \x in {41.012, 50.612, ..., 98} \foreach \y in {28.6, 38.2, ..., 60} \draw[line width=0.5pt, gray](\x, \y-1.5) --(\x, \y+1.5);%
+   \foreach \x in {41.012, 50.612, ..., 98} \foreach \y in {28.6, 38.2, ..., 60} \draw[line width=0.5pt, gray](\x-1.5, \y) --(\x+1.5, \y);%
+}
+
+\newcommand{\ReplicatorTemplate}{%
+   \begin{center}
+      \begin{tikzpicture}[x=1mm, y=1mm]
+         \filldraw[black](-10, -10) rectangle(137.5, 95);
+         \SpotScannerCommand{replicator}
+         \pic at (3.5, 79.5) {TargetMarker};
+         \pic at (115.5, 79.5) {TargetMarker};
+         \pic at (115.5, -1.5) {TargetMarker};
+         \foreach \x in {10, 19, ..., 117} \foreach \y in {10, 19, ..., 73} \draw[line width=0.5pt, gray](\x, \y) circle(2);
+         \SpotScannerFooter
+      \end{tikzpicture}
+   \end{center}%
+}
+
+\newcommand{\PipetteTemplate}[1]{%
+   \begin{center}
+      \begin{tikzpicture}[x=1mm, y=1mm]
+         \filldraw[black](-10, -10) rectangle(137.5, 95);
+         \SpotScannerCommand{pipette}
+         \pic[scale=0.8] at (35.5, 64) {TargetMarker};
+         \pic[scale=0.8] at (94.5, 64) {TargetMarker};
+         \pic[scale=0.8] at (94.5, 19) {TargetMarker};
+         #1
+         \draw[line width=1pt, white](65, 43) circle(44);
+         \SpotScannerFooter
+      \end{tikzpicture}
+   \end{center}%
+}
+
 \begin{document}
-   \begin{center}
-      \tikzset{
-         TargetMarker/.pic={
-            \filldraw[white](0, 0) rectangle(5, 5);
-            \draw[line width = 1.5pt](0, 0) rectangle(5, 5);
-            \filldraw[black](1, 1) rectangle(4, 4);
-            \filldraw[white](2, 2) rectangle(3, 3);
-         }
-      }
-      \begin{tikzpicture}[x = 1mm, y = 1mm]
-            \filldraw[black](-10, -10) rectangle (137.5, 95);
-%%%            \draw[step = 1, lightgray](-10, -10) grid(140, 100);
-%%%            \draw[step = 10, gray](-10, -10) grid(140, 100);
-            \draw[white](64, 90) node{\fontspec{Monaco}spotscanner --analyze replicator [-s SINGLE | -m] [-t {1,2,3,4,5,6,7,8,9,10}]};
-%            \pic at (7.5, 79.5) {TargetMarker};
-            \pic at (3.5, 79.5) {TargetMarker};
-            \pic at (115.5, 79.5) {TargetMarker};
-            \pic at (115.5, -1.5) {TargetMarker};
-%            \draw[line width = 1pt, gray](6, 6) rectangle(113, 77);
-               \foreach \x in {10, 19, ..., 117} \foreach \y in {10, 19, ..., 73} \draw[line width = 0.5pt, gray](\x, \y) circle(2);
-            \draw[white](64, -5) node{\footnotesize\fontspec{Monaco}SpotScanner, developed by Kento Yanagisawa};
-      \end{tikzpicture}
-   \end{center}
-      \vspace{40mm}
-   \begin{center}
-      \tikzset{
-         TargetMarker/.pic={
-            \filldraw[white](0, 0) rectangle(5, 5);
-            \draw[line width = 1.5pt](0, 0) rectangle(5, 5);
-            \filldraw[black](1, 1) rectangle(4, 4);
-            \filldraw[white](2, 2) rectangle(3, 3);
-         }
-      }
-      \begin{tikzpicture}[x = 1mm, y = 1mm]
-            \filldraw[black](-10, -10) rectangle (137.5, 95);
-%            \draw[step = 1, lightgray](-10, -10) grid(140, 100);
-%            \draw[step = 10, gray](-10, -10) grid(140, 100);
-%            \draw[step = 9.5, blue, shift={(22.25, 0)}](0, 0) grid(85.5, 85.5);
-            \draw[white](64, 90) node{\fontspec{Monaco}spotscanner --analyze pipette [-s SINGLE | -m] [-t {1,2,3,4,5,6,7,8,9,10}]};
-%            \pic at (7.5, 79.5) {TargetMarker};
-            \pic[scale = 0.8] at (35.5, 64) {TargetMarker};
-            \pic[scale = 0.8] at (94.5, 64) {TargetMarker};
-            \pic[scale = 0.8] at (94.5, 19) {TargetMarker};
-            \draw[line width = 1pt, white](65, 43) circle(44);
-            \draw[white](64, -5) node{\footnotesize\fontspec{Monaco}SpotScanner, developed by Kento Yanagisawa};
-      \end{tikzpicture}
-   \end{center}
+
+\ReplicatorTemplate
+\vspace{40mm}
+\PipetteTemplate{}
+
+\clearpage
+
+\PipetteTemplate{\PipetteGuides}
+\vspace{40mm}
+\PipetteTemplate{\PipetteGuides}
+
 \end{document}
