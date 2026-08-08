@@ -1,0 +1,173 @@
+SPOTSCANNER(1)               User Commands              SPOTSCANNER(1)
+
+NAME
+       spotscanner - quantitative analysis of fungal spot-test plates
+
+SYNOPSIS
+       spotscanner [-v] [-e] [-r]
+                  [-o {manual,marker-pdf,marker-tex,citation}]
+                  -a {pipette,replicator}
+                  [-s SINGLE | -m]
+                  [-t 1..10]
+
+DESCRIPTION
+       SpotScanner is a command-line tool for quantitative analysis of
+       fungal spot-test plates. It detects a printed marker on the
+       plate, segments the image into a fixed grid, and measures colony
+       growth in each spot, outputting results as CSV files and
+       diagnostic images.
+
+       The tool is designed for fungal genetics experiments (e.g.
+       Neurospora spot tests) using either multi-channel replicators
+       or manual pipetting.
+
+OPTIONS
+       -v, --version
+              Show version information and citation, then exit.
+
+       -e, --example
+              Show short usage examples and exit.
+
+       -r, --readme
+              View the SpotScanner manual (spotscanner.1) with less.
+              This is essentially equivalent to running “less” on the
+              installed manual file.
+
+       -o, --output {manual,marker-pdf,marker-tex,citation}
+              Open or output auxiliary resources.
+
+              manual
+                     Print a text manual (man-style) to standard
+                     output. This is convenient for use with pipes,
+                     for example:
+
+                            spotscanner -o manual | less
+
+              marker-pdf
+                     Open the printable marker PDF with the system
+                     viewer.
+
+              marker-tex
+                     Write the LaTeX source of the marker to marker.tex
+                     in the current directory. You can then run:
+
+                            lualatex marker.tex
+
+                     to generate marker.pdf.
+
+              citation
+                     Write a BibTeX entry for SpotScanner to
+                     spotscanner.bib in the current directory.
+
+       -a, --analyze {pipette,replicator}
+              Choose the plate layout. This option is required for
+              image analysis.
+
+              pipette
+                     4×6 matrix layout for manually pipetted plates.
+
+              replicator
+                     8×12 matrix layout for multi-channel replicators.
+
+       -s, --single SINGLE
+              Analyze only the specified image file. SINGLE should be a
+              .jpg/.JPG/.jpeg file in the current directory.
+
+       -m, --multi
+              Analyze all .jpg/.JPG/.jpeg images in the current
+              directory.
+
+              Exactly one of --single or --multi must be specified
+              when analyzing images.
+
+       -t, --threshold N
+              Threshold for marker recognition, where N is an integer
+              from 1 to 10. The default is 7 if this option is
+              omitted. Internally this is interpreted as N/10. Higher
+              values generally make marker detection stricter.
+
+MODES
+       Pipette mode (4×6)
+              In pipette mode, SpotScanner segments the plate into a
+              4×6 grid corresponding to manually pipetted spots.
+
+       Replicator mode (8×12)
+              In replicator mode, SpotScanner segments the plate into
+              an 8×12 grid corresponding to a typical replicator
+              layout.
+
+TYPICAL WORKFLOWS
+       Generate and print the marker
+              To obtain the printable marker PDF:
+
+                     spotscanner -o marker-pdf
+
+              To regenerate the marker from LaTeX:
+
+                     spotscanner -o marker-tex
+                     lualatex marker.tex
+
+              This produces marker.pdf in the current directory.
+
+       Analyze a single image (pipette mode)
+              1. Place the printed marker under the spot-test plate.
+              2. Take a photograph of the plate including the entire
+                 marker.
+              3. Copy the image (e.g. plate1.jpg) into a working
+                 directory.
+              4. Run:
+
+                     spotscanner -a pipette -s plate1.jpg
+
+              SpotScanner will detect the marker, align the image,
+              segment it into a 4×6 grid, and output:
+
+                     plate1_converted.png
+                     plate1_results.csv
+
+              The CSV file typically includes columns such as:
+
+                     Time, Image, Threshold, row, column, Colony
+
+       Analyze all images in a directory (replicator mode)
+              1. Copy all plate images (plate1.jpg, plate2.jpg, ...)
+                 into one directory.
+              2. Run:
+
+                     spotscanner -a replicator -m
+
+              SpotScanner will process each .jpg/.JPG/.jpeg file,
+              creating *_converted.png and *_results.csv files, and
+              grouping outputs into timestamped directories such as:
+
+                     converted_YYYY-MM-DD_HH-MM-SS/
+                     results_YYYY-MM-DD_HH-MM-SS/
+
+FILES
+       spotscanner/resources/marker/
+              Marker images shipped inside the installed Python package.
+
+       spotscanner/resources/template/marker.pdf
+              Printable marker.
+
+       spotscanner/resources/template/marker.tex
+              LaTeX source of the marker.
+
+       spotscanner/resources/template/spotscanner.1
+              Text manual in man(1) style.
+
+ENVIRONMENT
+       SPOTSCANNER_ROOT
+              Optional compatibility override for a 7.x-style root
+              containing marker/ and template/. SPOTSCANNER is retained
+              as a legacy alias. When neither is set, packaged resources
+              are used.
+
+AUTHOR
+       SpotScanner was developed by Kento Yanagisawa.
+
+REPORTING BUGS
+       Please report bugs or issues to the author or project maintainer.
+
+SEE ALSO
+       python(1), lualatex(1)

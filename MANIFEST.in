@@ -1,0 +1,2 @@
+recursive-include docs *.md
+include tools/compare_v7_results.py

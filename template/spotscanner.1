@@ -48,17 +48,16 @@ OPTIONS
                      viewer.
 
               marker-tex
-                     Print the LaTeX source of the marker to standard
-                     output and write it to marker.tex in the current
-                     directory. You can then run:
+                     Write the LaTeX source of the marker to marker.tex
+                     in the current directory. You can then run:
 
                             lualatex marker.tex
 
                      to generate marker.pdf.
 
               citation
-                     Print a BibTeX entry for SpotScanner and write it
-                     to spotscanner.bib in the current directory.
+                     Write a BibTeX entry for SpotScanner to
+                     spotscanner.bib in the current directory.
 
        -a, --analyze {pipette,replicator}
               Choose the plate layout. This option is required for
@@ -145,27 +144,24 @@ TYPICAL WORKFLOWS
                      results_YYYY-MM-DD_HH-MM-SS/
 
 FILES
-       INSTALL_ROOT/spotscanner/
-              Python package containing the SpotScanner code.
+       spotscanner/resources/marker/
+              Marker images shipped inside the installed Python package.
 
-       INSTALL_ROOT/marker/
-              Marker images used for recognition.
-
-       INSTALL_ROOT/template/marker.pdf
+       spotscanner/resources/template/marker.pdf
               Printable marker.
 
-       INSTALL_ROOT/template/marker.tex
+       spotscanner/resources/template/marker.tex
               LaTeX source of the marker.
 
-       INSTALL_ROOT/template/spotscanner.1
+       spotscanner/resources/template/spotscanner.1
               Text manual in man(1) style.
 
 ENVIRONMENT
        SPOTSCANNER_ROOT
-              If set, this directory is used as the install root
-              containing spotscanner/, marker/, and template/.
-              Otherwise, the install root is inferred from the location
-              of the spotscanner package.
+              Optional compatibility override for a 7.x-style root
+              containing marker/ and template/. SPOTSCANNER is retained
+              as a legacy alias. When neither is set, packaged resources
+              are used.
 
 AUTHOR
        SpotScanner was developed by Kento Yanagisawa.
