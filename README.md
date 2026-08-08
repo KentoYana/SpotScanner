@@ -4,8 +4,10 @@ SpotScanner is a command-line tool for quantitative analysis of fungal
 spot-test plates. It detects a printed marker, segments the image into a fixed
 grid, measures colony growth, and writes CSV data and diagnostic images.
 
-SpotScanner 8.0 is distributed as a standard Python package with a generated
-`spotscanner` command. The package version for this release is `8.0.0`.
+SpotScanner 8.0 is distributed through the
+[KentoYana Homebrew tap](https://github.com/KentoYana/homebrew-tap) and as a
+standard Python package. Both installation methods provide a `spotscanner`
+command. The current release is `8.0.0`.
 
 ## Features
 
@@ -19,7 +21,46 @@ SpotScanner 8.0 is distributed as a standard Python package with a generated
 The 8.0 migration changes packaging and execution, not the image-analysis
 algorithm.
 
-## Requirements
+## Installation
+
+### Homebrew (recommended for macOS)
+
+Install the current release directly from the project tap:
+
+```bash
+brew install KentoYana/tap/spotscanner
+```
+
+Verify the installed command:
+
+```bash
+spotscanner --version
+spotscanner --help
+```
+
+Homebrew installs SpotScanner with Homebrew-managed Python, NumPy, and OpenCV.
+It does not install packages into the system Python, pyenv versions, or a
+global pip environment. The Homebrew OpenCV package has a substantial native
+dependency set, so the first installation may download more than the
+SpotScanner source archive alone suggests.
+
+To update or remove the Homebrew installation:
+
+```bash
+brew update
+brew upgrade spotscanner
+brew uninstall spotscanner
+```
+
+The Formula is maintained separately in
+[`KentoYana/homebrew-tap`](https://github.com/KentoYana/homebrew-tap), keeping
+Homebrew release metadata separate from the platform-neutral Python package.
+Submission to `homebrew/core` can be considered after the tap has established
+a stable release history.
+
+### From a source checkout
+
+Source installations require:
 
 - Python 3.12, 3.13, or 3.14
 - NumPy 2.5.1
@@ -30,10 +71,6 @@ Python 3.12 or newer. NumPy and OpenCV are pinned to the versions used for the
 full pipette and replicator regression runs, so ordinary pip installations do
 not silently change the numerical runtime. The package metadata installs these
 exact dependencies automatically.
-
-## Installation
-
-### From a source checkout
 
 Use a Python interpreter managed by pyenv rather than the system Python. For
 example, to use Python 3.14 without changing pyenv's global selection:
@@ -66,40 +103,6 @@ python -m spotscanner --help
 `SPOTSCANNER_ROOT` and the legacy `SPOTSCANNER` variable remain available for
 old portable layouts. When unset, 8.x uses marker and template resources shipped
 inside the installed Python package.
-
-### Homebrew status
-
-The Homebrew formula is maintained separately in the project tap. After the
-formula is added to the tap, the installation commands are:
-
-```bash
-brew install KentoYana/tap/spotscanner
-```
-
-or:
-
-```bash
-brew tap KentoYana/tap
-brew install spotscanner
-```
-
-The formula should live in the separate `KentoYana/homebrew-tap` repository,
-not in this application repository. This keeps Homebrew release metadata and
-checksums separate from the platform-neutral Python package.
-
-Before publishing the formula, the project needs a final versioned release
-archive, its SHA-256 checksum, and a formula test that runs at least
-`spotscanner --version`. The formula should use Homebrew-managed Python and
-dependencies in an isolated installation under the formula prefix; it must not
-write to or depend on the user's system Python, pyenv, or global pip state.
-Requirements for a future `homebrew/core` submission, including stable release
-history and checksummed Python resources, should be handled after the tap has
-been exercised successfully.
-
-See the
-[Homebrew distribution plan](https://github.com/KentoYana/spotscanner/blob/main/docs/homebrew.md)
-for the release prerequisites, dependency model, Formula sketch, and
-`homebrew/core` path.
 
 ## Command-line usage
 
@@ -136,7 +139,7 @@ Analysis options:
 ### Analyze one image
 
 ```bash
-spotscanner -a pipette -s plate1.jpg
+spotscanner --analyze pipette --single plate1.jpg
 ```
 
 This creates:
@@ -150,7 +153,7 @@ detected.
 ### Analyze a directory
 
 ```bash
-spotscanner -a replicator -m
+spotscanner --analyze replicator --multi
 ```
 
 Each JPEG is processed and the outputs are grouped in timestamped directories:
@@ -171,7 +174,8 @@ spotscanner -o citation
 
 ## Testing and CI
 
-Run the local smoke and analysis tests with:
+From a source checkout with the development dependencies installed, run the
+local smoke and analysis tests with:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -179,8 +183,16 @@ python -m unittest discover -s tests -v
 
 GitHub Actions tests Python 3.12–3.14 on Linux and Python 3.14 on macOS. It
 checks package import, both CLI launch paths, packaged resources, help/version,
-auxiliary output, and a small synthetic-image analysis. A separate job builds
-the wheel and source distribution.
+auxiliary output, and synthetic pipette and replicator analyses. A separate job
+builds the wheel and source distribution.
+
+The Homebrew Formula has its own installation test. It creates a synthetic
+plate, detects the packaged marker, runs pipette analysis, and verifies the
+diagnostic image and CSV output:
+
+```bash
+brew test KentoYana/tap/spotscanner
+```
 
 ### SpotScanner 7 result regression
 
@@ -208,6 +220,16 @@ documented in
 cross-generation compatibility envelopes are 0.12 percentage points for the
 304-image pipette dataset and 0.17 percentage points for the 42-image
 replicator dataset.
+
+## Citation
+
+Generate the packaged BibTeX entry with:
+
+```bash
+spotscanner --output citation
+```
+
+This writes `spotscanner.bib` in the current directory.
 
 ## License
 
