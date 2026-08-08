@@ -24,11 +24,19 @@ No tag or Formula is created by the 8.0 development branch itself.
 ## Dependency model
 
 The Formula should declare Homebrew dependencies rather than use the user's
-Python, pyenv, or pip environment. The current candidate dependencies are:
+Python, pyenv, or pip environment. The selected SpotScanner 8 runtime is:
 
-- `python@3.14`
-- `opencv` (which currently depends on Homebrew `numpy` and Python 3.14)
-- `python-setuptools` as a build dependency
+- `python@3.14` (3.14.6 when this plan was validated)
+- `numpy` 2.5.1
+- `opencv` 5.0.0
+- `python-setuptools` 83.0.0 as a build dependency
+
+These Homebrew versions currently match the runtime used for the full pipette
+and replicator regressions. The Formula should declare `numpy` directly because
+SpotScanner imports it directly, even though `opencv` also depends on it. Since
+Homebrew dependencies can advance independently, every Formula revision must
+rerun the numerical release gates and update this plan if the resolved runtime
+no longer matches.
 
 Install SpotScanner below the Formula's `libexec` prefix with access to the
 declared Homebrew Python site packages, then link only the generated
@@ -56,6 +64,7 @@ class Spotscanner < Formula
   license "MIT"
 
   depends_on "python-setuptools" => :build
+  depends_on "numpy"
   depends_on "opencv"
   depends_on "python@3.14"
 

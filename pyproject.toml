@@ -7,7 +7,7 @@ name = "spotscanner"
 dynamic = ["version"]
 description = "Quantitative analysis of fungal spot-test plates"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "MIT"
 authors = [
   { name = "Kento Yanagisawa" },
@@ -19,15 +19,14 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "Operating System :: MacOS",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Image Processing",
 ]
 dependencies = [
-  "numpy>=1.26,<3",
-  "opencv-python-headless>=4.8,<6",
+  "numpy==2.5.1",
+  "opencv-python-headless==5.0.0.93",
 ]
 
 [project.scripts]

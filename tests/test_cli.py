@@ -42,6 +42,13 @@ class PackageTests(unittest.TestCase):
         self.assertTrue((RESOURCE_ROOT / "template" / "marker.pdf").is_file())
         self.assertTrue((RESOURCE_ROOT / "template" / "spotscanner.1").is_file())
 
+    def test_analysis_dependency_versions(self):
+        import cv2
+        import numpy as np
+
+        self.assertEqual(np.__version__, "2.5.1")
+        self.assertEqual(cv2.__version__, "5.0.0")
+
     def test_v7_regression_tool_help(self):
         result = subprocess.run(
             [sys.executable, REGRESSION_TOOL, "--help"],

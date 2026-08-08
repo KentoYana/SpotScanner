@@ -22,14 +22,15 @@ algorithm.
 
 ## Requirements
 
-- Python 3.11, 3.12, 3.13, or 3.14
-- NumPy 1.26 or newer (below 3.0)
-- OpenCV Python headless 4.8 or newer (below 6.0)
+- Python 3.12, 3.13, or 3.14
+- NumPy 2.5.1
+- OpenCV Python headless 5.0.0.93 (`cv2.__version__` reports `5.0.0`)
 
-Python 3.11 is the minimum because it remains suitable for maintained
-scientific Python environments while keeping the CI matrix focused on the four
-target versions. Current NumPy and OpenCV releases provide Python 3.14 support.
-The package metadata installs compatible dependencies automatically.
+Python 3.12 is the minimum because the selected NumPy 2.5.1 release requires
+Python 3.12 or newer. NumPy and OpenCV are pinned to the versions used for the
+full pipette and replicator regression runs, so ordinary pip installations do
+not silently change the numerical runtime. The package metadata installs these
+exact dependencies automatically.
 
 ## Installation
 
@@ -177,7 +178,7 @@ Run the local smoke and analysis tests with:
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions tests Python 3.11–3.14 on Linux and Python 3.14 on macOS. It
+GitHub Actions tests Python 3.12–3.14 on Linux and Python 3.14 on macOS. It
 checks package import, both CLI launch paths, packaged resources, help/version,
 auxiliary output, and a small synthetic-image analysis. A separate job builds
 the wheel and source distribution.
