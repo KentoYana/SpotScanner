@@ -17,7 +17,7 @@ the analysis timestamp. Image names, thresholds, and row/column coordinates
 must match exactly. Numeric `Colony` values are compared as decimal values;
 archived `NA` cells are reported and excluded from the numeric comparison.
 
-## 2026-08-08 baseline results
+## Pipette-mode baseline results
 
 The full dataset was run from the `dev7to8` working tree with the unchanged 7.x
 image-analysis algorithm.
@@ -62,6 +62,46 @@ observed compatibility envelope. This tolerance applies only to numeric
 success remain exact requirements. A change beyond 0.12, or a material change
 in the distribution above, requires investigation before release.
 
+## Replicator-mode baseline results
+
+The user-provided `Stamp.zip` archive extends the regression coverage to the
+8 × 12 replicator grid. Its SHA-256 is
+`131c9198f2e747568df8b2a60c6622f5ff4bd52d442e91ce7b682f2d7a56d37d`.
+Directories without result files are ignored by discovery.
+
+The archive contains 144 per-image `*_results.csv` files. Of these, 42 use the
+current 0–100 cover-rate schema with 96 rows. Another 102 use an older
+`Position` schema whose `Colony` values are binary 0/1 measurements; they are
+not numerically comparable and are reported as skipped. One additional wide
+aggregate results CSV and four metadata CSVs do not match the per-image result
+pattern and are not regression inputs.
+
+Four source images had been renamed after analysis. Comparing all four
+re-analyses against all four archived vectors gave one unambiguous mapping:
+
+| Archived result stem | Source image stem | Correct-pair mean absolute difference | Next-best mean absolute difference |
+| --- | --- | ---: | ---: |
+| `P6153542` | `Control` | 0.00750 | 3.25938 |
+| `P6153543` | `His` | 0.00594 | 3.26260 |
+| `P6153544` | `Hyg` | 0.00490 | 7.27469 |
+| `P6153545` | `BA` | 0.01458 | 10.36938 |
+
+With those aliases, all 42 compatible images and 4,032 cells were analyzed
+using Python 3.14.6, NumPy 2.5.1, and OpenCV 5.0.0. There were no CLI,
+marker-detection, threshold, coordinate, shape, or metadata errors.
+
+- Exact cells: 2,679 (66.44%)
+- Cells differing after two-decimal output: 1,353
+- Mean absolute difference across all cells: 0.00633 percentage points
+- Maximum absolute difference: 0.17 percentage points
+- Recorded thresholds: 11 images at 6, 13 at 7, and 18 at 8
+
+The 38 directly basename-matched images produced the same comparison values
+under NumPy 2.3.5/OpenCV 4.14.0 and NumPy 2.5.1/OpenCV 5.0.0. The observed
+cross-generation compatibility envelope for replicator mode is therefore 0.17
+percentage points. As with pipette mode, this is an absolute difference on the
+0–100 output scale, not a 17% relative error.
+
 ## Reproducing the comparison
 
 Use a pyenv-selected interpreter. An exact comparison intentionally exits with
@@ -86,3 +126,21 @@ The JSON report records both repositories' commits and dirty states,
 SpotScanner version, Python, NumPy, and OpenCV versions, counts, errors, and
 differences beyond the selected tolerance. Use `--limit N` only for a quick
 local check.
+
+For the replicator archive, extract `Stamp.zip`, then run:
+
+```bash
+PYENV_VERSION=3.14.6 pyenv exec python tools/compare_v7_results.py \
+  /path/to/Stamp \
+  --mode replicator \
+  --skip-incompatible-results \
+  --image-alias P6153542=Control \
+  --image-alias P6153543=His \
+  --image-alias P6153544=Hyg \
+  --image-alias P6153545=BA \
+  --tolerance 0.17 \
+  --report /tmp/spotscanner-replicator-compatible.json
+```
+
+Unsupported legacy results are listed in the JSON report rather than silently
+treated as current cover-rate measurements.

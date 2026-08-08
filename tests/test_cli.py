@@ -51,6 +51,8 @@ class PackageTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Resource_Article_DDT_hH3-K4R_01", result.stdout)
+        self.assertIn("--mode {pipette,replicator}", result.stdout)
+        self.assertIn("--image-alias", result.stdout)
 
 
 class CliTests(unittest.TestCase):
@@ -143,6 +145,43 @@ class AnalysisSmokeTests(unittest.TestCase):
             self.assertEqual(len(rows), 25)
             self.assertEqual({row[2] for row in rows[1:]}, {"7"})
             self.assertEqual({row[3] for row in rows[1:]}, {"1", "2", "3", "4"})
+
+    def test_replicator_single_image(self):
+        try:
+            import cv2
+            import numpy as np
+        except ImportError as error:
+            self.skipTest(f"analysis dependencies are unavailable: {error}")
+
+        marker = cv2.imread(str(RESOURCE_ROOT / "marker" / "Marker16.png"))
+        self.assertIsNotNone(marker)
+
+        canvas = np.full((800, 1000, 3), 255, dtype=np.uint8)
+        canvas[50:210, 50:210] = marker
+        canvas[600:760, 800:960] = marker
+        cv2.circle(canvas, (350, 350), 60, (0, 0, 0), -1)
+
+        with tempfile.TemporaryDirectory() as workdir:
+            image_path = Path(workdir, "replicator.jpg")
+            self.assertTrue(cv2.imwrite(str(image_path), canvas))
+
+            result = run_module(
+                "--analyze",
+                "replicator",
+                "--single",
+                image_path.name,
+                cwd=workdir,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Marker16 Match!!!", result.stdout)
+
+            csv_path = Path(workdir, "replicator_results.csv")
+            self.assertTrue(csv_path.is_file())
+            with csv_path.open(newline="", encoding="utf-8") as csv_file:
+                rows = list(csv.reader(csv_file))
+            self.assertEqual(len(rows), 97)
+            self.assertEqual({row[3] for row in rows[1:]}, set(map(str, range(1, 9))))
+            self.assertEqual({row[4] for row in rows[1:]}, set(map(str, range(1, 13))))
 
 
 if __name__ == "__main__":

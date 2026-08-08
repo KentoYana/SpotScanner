@@ -202,9 +202,12 @@ thresholds, row/column coordinates, and `Colony` values by default. Use
 `--limit N` for a quick sample or `--tolerance VALUE` only when an explicitly
 documented numerical tolerance has been approved.
 
-The full 304-image baseline, dependency-version comparison, observed 0.12
-percentage-point compatibility envelope, and interpretation are documented in
-[SpotScanner 7 numerical regression](docs/v7-regression.md).
+The full baselines, dependency-version comparison, and interpretation are
+documented in
+[SpotScanner 7 numerical regression](docs/v7-regression.md). The observed
+cross-generation compatibility envelopes are 0.12 percentage points for the
+304-image pipette dataset and 0.17 percentage points for the 42-image
+replicator dataset.
 
 ## License
 

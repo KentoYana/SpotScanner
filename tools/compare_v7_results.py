@@ -21,7 +21,8 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATASET_RELATIVE_PATH = Path("04_quantitative_spot_test/dataset")
-EXPECTED_FIELDS = ["Time", "Image", "Threshold", "row", "column", "Colony"]
+CURRENT_FIELDS = ["Time", "Image", "Threshold", "row", "column", "Colony"]
+MODE_DIMENSIONS = {"pipette": (4, 6), "replicator": (8, 12)}
 
 # Running ``python tools/compare_v7_results.py`` puts ``tools`` rather than the
 # checkout root on sys.path.  Add the root explicitly so that both the report
@@ -60,7 +61,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "resource_repository",
         type=Path,
-        help="Path to a Resource_Article_DDT_hH3-K4R_01 checkout.",
+        help=(
+            "Path to a Resource_Article_DDT_hH3-K4R_01 checkout or another "
+            "directory containing archived *_results.csv files."
+        ),
+    )
+    parser.add_argument(
+        "--mode",
+        choices=sorted(MODE_DIMENSIONS),
+        default="pipette",
+        help="Analysis grid used by the archived results (default: pipette).",
     )
     parser.add_argument(
         "--jobs",
@@ -89,6 +99,32 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Keep generated CSV and diagnostic images in this directory.",
     )
+    parser.add_argument(
+        "--skip-missing-images",
+        action="store_true",
+        help=(
+            "Report and skip result CSVs whose source image cannot be found "
+            "by basename instead of rejecting the dataset."
+        ),
+    )
+    parser.add_argument(
+        "--skip-incompatible-results",
+        action="store_true",
+        help=(
+            "Report and skip result CSVs with an incompatible schema or grid "
+            "instead of rejecting the dataset."
+        ),
+    )
+    parser.add_argument(
+        "--image-alias",
+        action="append",
+        default=[],
+        metavar="RESULT_STEM=IMAGE_STEM",
+        help=(
+            "Map a result basename to a renamed source-image basename. "
+            "May be supplied more than once."
+        ),
+    )
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error("--jobs must be at least 1")
@@ -96,16 +132,25 @@ def parse_args() -> argparse.Namespace:
         parser.error("--tolerance cannot be negative")
     if args.limit is not None and args.limit < 1:
         parser.error("--limit must be at least 1")
+    aliases = {}
+    for value in args.image_alias:
+        result_stem, separator, image_stem = value.partition("=")
+        if not separator or not result_stem or not image_stem:
+            parser.error("--image-alias must use RESULT_STEM=IMAGE_STEM")
+        if result_stem in aliases:
+            parser.error(f"duplicate --image-alias for {result_stem}")
+        aliases[result_stem] = image_stem
+    args.image_aliases = aliases
     return args
 
 
 def read_csv_rows(path: Path) -> tuple[dict[str, str], ...]:
     with path.open(newline="", encoding="utf-8-sig") as csv_file:
         reader = csv.DictReader(csv_file)
-        if reader.fieldnames != EXPECTED_FIELDS:
+        if reader.fieldnames != CURRENT_FIELDS:
             raise ValueError(
                 f"unexpected columns in {path}: {reader.fieldnames!r}; "
-                f"expected {EXPECTED_FIELDS!r}"
+                f"expected {CURRENT_FIELDS!r}"
             )
         return tuple(dict(row) for row in reader)
 
@@ -126,36 +171,69 @@ def find_image(reference_csv: Path, image_stem: str) -> Path:
     return matches[0]
 
 
-def discover_cases(resource_repository: Path) -> list[Case]:
-    dataset_root = resource_repository.resolve() / DATASET_RELATIVE_PATH
+def discover_cases(
+    resource_repository: Path,
+    mode: str,
+    skip_missing_images: bool,
+    skip_incompatible_results: bool,
+    image_aliases: dict[str, str],
+) -> tuple[list[Case], list[dict[str, str]], Path]:
+    packaged_dataset_root = resource_repository.resolve() / DATASET_RELATIVE_PATH
+    dataset_root = (
+        packaged_dataset_root
+        if packaged_dataset_root.is_dir()
+        else resource_repository.resolve()
+    )
     if not dataset_root.is_dir():
         raise ValueError(f"dataset directory not found: {dataset_root}")
 
     cases = []
+    skipped = []
+    expected_rows = MODE_DIMENSIONS[mode][0] * MODE_DIMENSIONS[mode][1]
     for index, reference_csv in enumerate(
         sorted(dataset_root.rglob("*_results.csv")), start=1
     ):
-        rows = read_csv_rows(reference_csv)
-        if len(rows) != 24:
-            raise ValueError(f"expected 24 measurement rows in {reference_csv}")
-        thresholds = {row["Threshold"] for row in rows}
-        if len(thresholds) != 1:
-            raise ValueError(f"multiple thresholds in {reference_csv}: {thresholds}")
-        image_stem = reference_csv.name.removesuffix("_results.csv")
-        if {row["Image"] for row in rows} != {image_stem}:
-            raise ValueError(f"Image column does not match {image_stem}: {reference_csv}")
+        try:
+            rows = read_csv_rows(reference_csv)
+            if len(rows) != expected_rows:
+                raise ValueError(
+                    f"expected {expected_rows} measurement rows in {reference_csv}"
+                )
+            thresholds = {row["Threshold"] for row in rows}
+            if len(thresholds) != 1:
+                raise ValueError(f"multiple thresholds in {reference_csv}: {thresholds}")
+            image_stem = reference_csv.name.removesuffix("_results.csv")
+            if {row["Image"] for row in rows} != {image_stem}:
+                raise ValueError(
+                    f"Image column does not match {image_stem}: {reference_csv}"
+                )
+        except (TypeError, ValueError) as error:
+            if not skip_incompatible_results:
+                raise
+            skipped.append({"reference_csv": str(reference_csv), "reason": str(error)})
+            continue
+        try:
+            image = find_image(
+                reference_csv,
+                image_aliases.get(image_stem, image_stem),
+            )
+        except ValueError as error:
+            if not skip_missing_images:
+                raise
+            skipped.append({"reference_csv": str(reference_csv), "reason": str(error)})
+            continue
         cases.append(
             Case(
                 index=index,
                 reference_csv=reference_csv,
-                image=find_image(reference_csv, image_stem),
+                image=image,
                 threshold=int(next(iter(thresholds))),
                 reference_rows=rows,
             )
         )
     if not cases:
         raise ValueError(f"no SpotScanner result CSV files found below {dataset_root}")
-    return cases
+    return cases, skipped, dataset_root
 
 
 def rows_by_position(rows: tuple[dict[str, str], ...]) -> dict[tuple[int, int], dict[str, str]]:
@@ -211,10 +289,15 @@ def compare_rows(
     return tuple(differences)
 
 
-def run_case(case: Case, work_root: Path, tolerance: Decimal) -> CaseResult:
+def run_case(
+    case: Case,
+    work_root: Path,
+    tolerance: Decimal,
+    mode: str,
+) -> CaseResult:
     case_directory = work_root / f"{case.index:04d}"
     case_directory.mkdir(parents=True, exist_ok=False)
-    linked_image = case_directory / case.image.name
+    linked_image = case_directory / f"{case.image_stem}{case.image.suffix}"
     linked_image.symlink_to(case.image)
 
     environment = os.environ.copy()
@@ -229,7 +312,7 @@ def run_case(case: Case, work_root: Path, tolerance: Decimal) -> CaseResult:
             "-m",
             "spotscanner",
             "--analyze",
-            "pipette",
+            mode,
             "--single",
             linked_image.name,
             "--threshold",
@@ -295,6 +378,10 @@ def make_report(
     cases: list[Case],
     results: list[CaseResult],
     tolerance: Decimal,
+    mode: str,
+    dataset_root: Path,
+    skipped: list[dict[str, str]],
+    image_aliases: dict[str, str],
 ) -> dict[str, Any]:
     differences = [
         {
@@ -322,6 +409,7 @@ def make_report(
     )
     return {
         "resource_repository": str(resource_repository.resolve()),
+        "dataset_root": str(dataset_root),
         "resource_commit": git_commit(resource_repository.resolve()),
         "resource_dirty": git_dirty(resource_repository.resolve()),
         "spotscanner_commit": git_commit(PROJECT_ROOT),
@@ -330,11 +418,14 @@ def make_report(
         "python_version": sys.version.split()[0],
         "numpy_version": __import__("numpy").__version__,
         "opencv_version": __import__("cv2").__version__,
+        "mode": mode,
+        "image_aliases": image_aliases,
         "tolerance": float(tolerance),
         "cases": len(cases),
         "cells": total_cells,
         "compared_cells": total_cells - reference_na_cells,
         "reference_na_cells": reference_na_cells,
+        "skipped": skipped,
         "threshold_counts": dict(sorted(Counter(case.threshold for case in cases).items())),
         "cases_with_differences": len(
             {result.case.reference_csv for result in results if result.differences}
@@ -353,7 +444,13 @@ def main() -> int:
     args = parse_args()
     resource_repository = args.resource_repository.resolve()
     try:
-        cases = discover_cases(resource_repository)
+        cases, skipped, dataset_root = discover_cases(
+            resource_repository,
+            args.mode,
+            args.skip_missing_images,
+            args.skip_incompatible_results,
+            args.image_aliases,
+        )
     except (OSError, TypeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 2
@@ -361,7 +458,9 @@ def main() -> int:
         cases = cases[: args.limit]
     print(
         f"Discovered {len(cases)} image/CSV pairs; "
-        f"thresholds={dict(sorted(Counter(case.threshold for case in cases).items()))}",
+        f"mode={args.mode}; "
+        f"thresholds={dict(sorted(Counter(case.threshold for case in cases).items()))}; "
+        f"skipped={len(skipped)}",
         flush=True,
     )
 
@@ -377,7 +476,13 @@ def main() -> int:
     try:
         with ThreadPoolExecutor(max_workers=args.jobs) as executor:
             future_to_case = {
-                executor.submit(run_case, case, work_root, args.tolerance): case
+                executor.submit(
+                    run_case,
+                    case,
+                    work_root,
+                    args.tolerance,
+                    args.mode,
+                ): case
                 for case in cases
             }
             for completed_count, future in enumerate(as_completed(future_to_case), start=1):
@@ -387,7 +492,16 @@ def main() -> int:
                     print(f"Completed {completed_count}/{len(cases)}", flush=True)
 
         results.sort(key=lambda result: result.case.index)
-        report = make_report(resource_repository, cases, results, args.tolerance)
+        report = make_report(
+            resource_repository,
+            cases,
+            results,
+            args.tolerance,
+            args.mode,
+            dataset_root,
+            skipped,
+            args.image_aliases,
+        )
         if args.report is not None:
             report_path = args.report.resolve()
             report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -401,6 +515,7 @@ def main() -> int:
             "Summary: "
             f"cases={report['cases']}, compared_cells={report['compared_cells']}, "
             f"reference_na_cells={report['reference_na_cells']}, "
+            f"skipped={len(report['skipped'])}, "
             f"cases_with_differences={report['cases_with_differences']}, "
             f"different_cells={report['different_cells']}, "
             f"max_absolute_difference={report['max_absolute_difference']}, "
