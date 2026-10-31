@@ -12,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -23,13 +24,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATASET_RELATIVE_PATH = Path("04_quantitative_spot_test/dataset")
 CURRENT_FIELDS = ["Time", "Image", "Threshold", "row", "column", "Colony"]
 MODE_DIMENSIONS = {"pipette": (4, 6), "replicator": (8, 12)}
-
-# Running ``python tools/compare_v7_results.py`` puts ``tools`` rather than the
-# checkout root on sys.path.  Add the root explicitly so that both the report
-# metadata and the subprocesses exercise the current source tree, even when the
-# selected pyenv interpreter does not have SpotScanner installed.
-sys.path.insert(0, str(PROJECT_ROOT))
-
 
 @dataclass(frozen=True)
 class Case:
@@ -47,16 +41,116 @@ class Case:
 @dataclass(frozen=True)
 class CaseResult:
     case: Case
+    # All nonzero numerical differences; the report applies the selected gate.
     differences: tuple[dict[str, Any], ...]
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class Runtime:
+    command: tuple[str, ...]
+    python: str
+    environment: dict[str, str]
+    metadata: dict[str, Any]
+
+
+def select_runtime(executable: Path | None) -> Runtime:
+    """Probe the same interpreter and import environment that will run analysis."""
+    environment = os.environ.copy()
+    if executable is None:
+        existing_pythonpath = environment.get("PYTHONPATH")
+        environment["PYTHONPATH"] = str(PROJECT_ROOT)
+        if existing_pythonpath:
+            environment["PYTHONPATH"] += os.pathsep + existing_pythonpath
+        python = sys.executable
+        command = (python, "-m", "spotscanner")
+    else:
+        executable = executable.expanduser().resolve(strict=True)
+        # pip/Homebrew console scripts have an absolute Python shebang. Refuse
+        # wrappers whose interpreter cannot be identified honestly.
+        with executable.open(encoding="utf-8") as script:
+            shebang = script.readline().strip()
+        interpreter = shlex.split(shebang.removeprefix("#!"))
+        if (not shebang.startswith("#!") or len(interpreter) != 1
+                or not Path(interpreter[0]).is_absolute()
+                or not Path(interpreter[0]).name.startswith("python")):
+            raise ValueError("--executable must be a console script with an absolute Python shebang")
+        python = interpreter[0]  # Do not resolve: a venv's interpreter path matters.
+        command = (str(executable),)
+        environment.pop("PYTHONPATH", None)
+        environment.pop("PYTHONHOME", None)
+        environment.pop("SPOTSCANNER_ROOT", None)
+        environment.pop("SPOTSCANNER", None)
+    probe = """
+import json, sys
+import cv2, numpy, spotscanner
+print(json.dumps({
+    "spotscanner_version": spotscanner.__version__,
+    "spotscanner_module": spotscanner.__file__,
+    "python_version": sys.version.split()[0],
+    "python_executable": sys.executable,
+    "numpy_version": numpy.__version__, "numpy_module": numpy.__file__,
+    "opencv_version": cv2.__version__, "opencv_module": cv2.__file__,
+}))
+"""
+    with tempfile.TemporaryDirectory(prefix="spotscanner-runtime-") as workdir:
+        completed = subprocess.run(
+            [python, "-c", probe], cwd=workdir, env=environment,
+            check=True, capture_output=True, text=True,
+        )
+    metadata = json.loads(completed.stdout)
+    metadata["execution_mode"] = "source" if executable is None else "installed"
+    metadata["analysis_command"] = list(command)
+    return Runtime(command, python, environment, metadata)
+
+
+def validate_diagnostic_images(
+    runtime: Runtime, cases: list[Case], work_root: Path,
+) -> dict[str, Any]:
+    """Decode every diagnostic with the tested runtime, retaining its dimensions."""
+    inputs = [
+        {"image": str(case.image), "diagnostic": str(
+            work_root / f"{case.index:04d}" / f"{case.image_stem}_converted.png"
+        )}
+        for case in cases
+    ]
+    probe = """
+import json, sys
+import cv2, numpy as np
+verified, errors = [], []
+for item in json.load(sys.stdin):
+    original = cv2.imread(item["image"], cv2.IMREAD_GRAYSCALE)
+    diagnostic = cv2.imread(item["diagnostic"], cv2.IMREAD_UNCHANGED)
+    if original is None or diagnostic is None:
+        errors.append({**item, "error": "image is missing or cannot be decoded"})
+    elif (diagnostic.ndim != 2 or diagnostic.dtype != np.uint8
+          or min(diagnostic.shape) <= 0
+          or any(a > b for a, b in zip(diagnostic.shape, original.shape))
+          or not np.isin(diagnostic, [0, 255]).all()):
+        errors.append({**item, "error": "invalid binary diagnostic image or dimensions"})
+    else:
+        verified.append({**item, "height": diagnostic.shape[0], "width": diagnostic.shape[1]})
+print(json.dumps({"verified": verified, "errors": errors}))
+"""
+    completed = subprocess.run(
+        [runtime.python, "-c", probe], cwd=work_root, env=runtime.environment,
+        input=json.dumps(inputs), check=True, capture_output=True, text=True,
+    )
+    return json.loads(completed.stdout)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Re-run archived plate images with the current SpotScanner source "
+            "Re-run archived plate images with SpotScanner source or an installed executable "
             "and compare the generated values with SpotScanner 7 CSVs."
         )
+    )
+    parser.add_argument(
+        "--executable",
+        type=Path,
+        help=("Test this installed Python console script instead of the source checkout; "
+              "probe its interpreter and remove Python and legacy resource overrides."),
     )
     parser.add_argument(
         "resource_repository",
@@ -128,8 +222,8 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error("--jobs must be at least 1")
-    if args.tolerance < 0:
-        parser.error("--tolerance cannot be negative")
+    if not args.tolerance.is_finite() or args.tolerance < 0:
+        parser.error("--tolerance must be finite and nonnegative")
     if args.limit is not None and args.limit < 1:
         parser.error("--limit must be at least 1")
     aliases = {}
@@ -265,11 +359,15 @@ def compare_rows(
                     f"metadata mismatch at {position} for {field}: "
                     f"{expected[field]!r} != {actual[field]!r}"
                 )
-        if expected["Colony"].strip().upper() == "NA":
-            continue
         try:
-            expected_colony = Decimal(expected["Colony"])
             actual_colony = Decimal(actual["Colony"])
+            if not actual_colony.is_finite() or not 0 <= actual_colony <= 100:
+                raise ValueError(f"invalid Colony value at {position}: {actual['Colony']!r}")
+            if expected["Colony"].strip().upper() == "NA":
+                continue
+            expected_colony = Decimal(expected["Colony"])
+            if not expected_colony.is_finite():
+                raise ValueError(f"invalid reference Colony value at {position}")
         except InvalidOperation as error:
             raise ValueError(
                 f"non-numeric Colony value at {position}: "
@@ -292,25 +390,17 @@ def compare_rows(
 def run_case(
     case: Case,
     work_root: Path,
-    tolerance: Decimal,
     mode: str,
+    runtime: Runtime,
 ) -> CaseResult:
     case_directory = work_root / f"{case.index:04d}"
     case_directory.mkdir(parents=True, exist_ok=False)
     linked_image = case_directory / f"{case.image_stem}{case.image.suffix}"
     linked_image.symlink_to(case.image)
 
-    environment = os.environ.copy()
-    existing_pythonpath = environment.get("PYTHONPATH")
-    environment["PYTHONPATH"] = str(PROJECT_ROOT)
-    if existing_pythonpath:
-        environment["PYTHONPATH"] += os.pathsep + existing_pythonpath
-
     completed = subprocess.run(
         [
-            sys.executable,
-            "-m",
-            "spotscanner",
+            *runtime.command,
             "--analyze",
             mode,
             "--single",
@@ -319,7 +409,7 @@ def run_case(
             str(case.threshold),
         ],
         cwd=case_directory,
-        env=environment,
+        env=runtime.environment,
         check=False,
         capture_output=True,
         text=True,
@@ -343,7 +433,9 @@ def run_case(
         )
     try:
         generated_rows = read_csv_rows(generated_csv)
-        differences = compare_rows(case, generated_rows, tolerance)
+        # Keep exact differences for statistics even when the release gate
+        # permits an established cross-generation numerical envelope.
+        differences = compare_rows(case, generated_rows, Decimal("0"))
     except (OSError, TypeError, ValueError) as error:
         return CaseResult(case=case, differences=(), error=str(error))
     return CaseResult(case=case, differences=differences)
@@ -382,8 +474,10 @@ def make_report(
     dataset_root: Path,
     skipped: list[dict[str, str]],
     image_aliases: dict[str, str],
+    runtime: Runtime,
+    diagnostic_images: dict[str, Any],
 ) -> dict[str, Any]:
-    differences = [
+    exact_differences = [
         {
             "reference_csv": str(result.case.reference_csv),
             "image": str(result.case.image),
@@ -392,6 +486,8 @@ def make_report(
         for result in results
         for difference in result.differences
     ]
+    differences = [difference for difference in exact_differences
+                   if Decimal(str(difference["absolute_difference"])) > tolerance]
     errors = [
         {
             "reference_csv": str(result.case.reference_csv),
@@ -412,12 +508,11 @@ def make_report(
         "dataset_root": str(dataset_root),
         "resource_commit": git_commit(resource_repository.resolve()),
         "resource_dirty": git_dirty(resource_repository.resolve()),
-        "spotscanner_commit": git_commit(PROJECT_ROOT),
-        "spotscanner_dirty": git_dirty(PROJECT_ROOT),
-        "spotscanner_version": __import__("spotscanner").__version__,
-        "python_version": sys.version.split()[0],
-        "numpy_version": __import__("numpy").__version__,
-        "opencv_version": __import__("cv2").__version__,
+        "regression_tool_commit": git_commit(PROJECT_ROOT),
+        "regression_tool_dirty": git_dirty(PROJECT_ROOT),
+        "spotscanner_commit": git_commit(PROJECT_ROOT) if runtime.metadata["execution_mode"] == "source" else None,
+        "spotscanner_dirty": git_dirty(PROJECT_ROOT) if runtime.metadata["execution_mode"] == "source" else None,
+        **runtime.metadata,
         "mode": mode,
         "image_aliases": image_aliases,
         "tolerance": float(tolerance),
@@ -428,13 +523,24 @@ def make_report(
         "skipped": skipped,
         "threshold_counts": dict(sorted(Counter(case.threshold for case in cases).items())),
         "cases_with_differences": len(
-            {result.case.reference_csv for result in results if result.differences}
+            {difference["reference_csv"] for difference in differences}
         ),
         "different_cells": len(differences),
+        "exact_different_cells": len(exact_differences),
+        "exact_cases_with_differences": len({difference["reference_csv"] for difference in exact_differences}),
+        "absolute_difference_counts": dict(sorted(Counter(
+            str(difference["absolute_difference"]) for difference in exact_differences
+        ).items())),
         "max_absolute_difference": max(
-            (difference["absolute_difference"] for difference in differences),
+            (difference["absolute_difference"] for difference in exact_differences),
             default=0.0,
         ),
+        "mean_absolute_difference": (
+            sum(difference["absolute_difference"] for difference in exact_differences)
+            / (total_cells - reference_na_cells)
+            if total_cells > reference_na_cells and not errors else None
+        ),
+        "diagnostic_images": diagnostic_images,
         "errors": errors,
         "differences": differences,
     }
@@ -444,6 +550,7 @@ def main() -> int:
     args = parse_args()
     resource_repository = args.resource_repository.resolve()
     try:
+        runtime = select_runtime(args.executable)
         cases, skipped, dataset_root = discover_cases(
             resource_repository,
             args.mode,
@@ -451,7 +558,7 @@ def main() -> int:
             args.skip_incompatible_results,
             args.image_aliases,
         )
-    except (OSError, TypeError, ValueError) as error:
+    except (OSError, TypeError, ValueError, subprocess.CalledProcessError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 2
     if args.limit is not None:
@@ -480,8 +587,8 @@ def main() -> int:
                     run_case,
                     case,
                     work_root,
-                    args.tolerance,
                     args.mode,
+                    runtime,
                 ): case
                 for case in cases
             }
@@ -492,6 +599,7 @@ def main() -> int:
                     print(f"Completed {completed_count}/{len(cases)}", flush=True)
 
         results.sort(key=lambda result: result.case.index)
+        diagnostic_images = validate_diagnostic_images(runtime, cases, work_root)
         report = make_report(
             resource_repository,
             cases,
@@ -501,6 +609,8 @@ def main() -> int:
             dataset_root,
             skipped,
             args.image_aliases,
+            runtime,
+            diagnostic_images,
         )
         if args.report is not None:
             report_path = args.report.resolve()
@@ -518,14 +628,19 @@ def main() -> int:
             f"skipped={len(report['skipped'])}, "
             f"cases_with_differences={report['cases_with_differences']}, "
             f"different_cells={report['different_cells']}, "
+            f"exact_different_cells={report['exact_different_cells']}, "
             f"max_absolute_difference={report['max_absolute_difference']}, "
-            f"errors={len(report['errors'])}",
+            f"errors={len(report['errors'])}, "
+            f"diagnostic_images={len(diagnostic_images['verified'])}, "
+            f"diagnostic_errors={len(diagnostic_images['errors'])}",
             flush=True,
         )
         if report["errors"]:
             for error in report["errors"][:10]:
                 print(f"Error: {error}", file=sys.stderr)
-        return 0 if not report["errors"] and not report["differences"] else 1
+        for error in diagnostic_images["errors"][:10]:
+            print(f"Diagnostic image error: {error}", file=sys.stderr)
+        return 0 if not report["errors"] and not report["differences"] and not diagnostic_images["errors"] else 1
     finally:
         if temporary_directory is not None:
             shutil.rmtree(temporary_directory)

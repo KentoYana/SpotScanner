@@ -44,11 +44,19 @@ global pip environment. The Homebrew OpenCV package has a substantial native
 dependency set, so the first installation may download more than the
 SpotScanner source archive alone suggests.
 
+The Formula's Python minor version must match Homebrew's OpenCV bindings.
+SpotScanner 8.0.1 revision 1 uses Python 3.15; the revision fixes the earlier
+3.14 environment without changing the application version. Homebrew shares
+its current NumPy and OpenCV instead of installing the pip dependencies below.
+This runtime is checked separately with `brew test` and real-image regression;
+it does not promise the exact dependency versions of a pip installation.
+
 To update or remove the Homebrew installation:
 
 ```bash
 brew update
 brew upgrade spotscanner
+brew test KentoYana/tap/spotscanner
 brew uninstall spotscanner
 ```
 
@@ -186,13 +194,24 @@ checks package import, both CLI launch paths, packaged resources, help/version,
 auxiliary output, and synthetic pipette and replicator analyses. A separate job
 builds the wheel and source distribution.
 
-The Homebrew Formula has its own installation test. It creates a synthetic
-plate, detects the packaged marker, runs pipette analysis, and verifies the
-diagnostic image and CSV output:
+The Homebrew Formula has its own installation test. It imports OpenCV and
+NumPy from the installed environment, detects the packaged marker, runs both
+pipette and replicator analysis, and verifies decoded diagnostic images, CSV
+headers, all grid coordinates, and every numerical result against synthetic
+references cross-checked with the pinned pip runtime:
 
 ```bash
 brew test KentoYana/tap/spotscanner
 ```
+
+The tap's macOS workflow installs the checked-out Formula on changes, weekly,
+and on manual dispatch. It refreshes Homebrew dependency metadata and rejects
+a Python mismatch with OpenCV before installation. The existing pip CI and
+its exact dependency-version assertions remain unchanged. Those assertions
+and `pip check` validate the pinned pip distribution: running them against
+Homebrew's deliberately different packages is not its compatibility gate.
+See [Homebrew runtime validation](docs/homebrew-validation.md) for the tested
+versions, real-image results, and limits of this coverage.
 
 ### SpotScanner 7 result regression
 
