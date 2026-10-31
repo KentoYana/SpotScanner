@@ -204,9 +204,9 @@ references cross-checked with the pinned pip runtime:
 brew test KentoYana/tap/spotscanner
 ```
 
-The tap's macOS workflow installs the checked-out Formula on changes, weekly,
-and on manual dispatch. It refreshes Homebrew dependency metadata and rejects
-a Python mismatch with OpenCV before installation. The existing pip CI and
+The tap's macOS workflow installs the checked-out Formula on changes, twice yearly
+(on January 1 and July 1 at 12:23 JST), and on manual dispatch. It refreshes
+Homebrew dependency metadata and rejects a Python mismatch with OpenCV before installation. The existing pip CI and
 its exact dependency-version assertions remain unchanged. Those assertions
 and `pip check` validate the pinned pip distribution: running them against
 Homebrew's deliberately different packages is not its compatibility gate.

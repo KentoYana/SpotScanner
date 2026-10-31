@@ -118,9 +118,9 @@ the same command by pointing `--executable` to an isolated pinned venv's
 
 ## Continuous detection and remaining limits
 
-The tap workflow runs on macOS for Formula/workflow changes, weekly on Monday
-at 03:23 UTC (12:23 JST), and on manual dispatch. It refreshes Homebrew metadata,
-registers the checked-out tap commit and verifies its identity, compares the
+The tap workflow runs on macOS for Formula/workflow changes, every January 1
+and July 1 at 03:23 UTC (12:23 JST), and on manual dispatch. It refreshes
+Homebrew metadata, registers the checked-out tap commit and verifies its identity, compares the
 Python dependencies of SpotScanner and OpenCV, installs current dependencies
 and the Formula, then imports the installed runtime and runs both-mode
 `brew test`. Environment details and logs are retained as Actions artifacts.
@@ -143,8 +143,7 @@ GitHub-hosted validation subsequently passed on 2026-10-31:
   [push run](https://github.com/KentoYana/homebrew-tap/actions/runs/41175212766)
   also passed. No CI failure required a code change or rerun.
 
-Weekly scheduling becomes active only once the workflow reaches the default
-branch. The weekly synthetic gate detects
+Scheduled runs use the default branch. The scheduled synthetic gate detects
 import/ABI failures and drift on its fixture; it does not run the external
 real-image collections. Future dependency changes still require investigation
 and a real-image regression before accepting changed reference values.
