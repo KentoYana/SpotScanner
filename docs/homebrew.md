@@ -1,115 +1,157 @@
-# Homebrew distribution plan
+# Release and Homebrew maintenance
 
-SpotScanner's Formula should be maintained in the separate
-`KentoYana/homebrew-tap` repository. The application repository should contain
-portable Python packaging, tests, and release archives, but not a second copy of
-the live Formula.
+SpotScanner's live [Formula](https://github.com/KentoYana/homebrew-tap/blob/main/Formula/spotscanner.rb)
+and [Homebrew workflow](https://github.com/KentoYana/homebrew-tap/blob/main/.github/workflows/spotscanner.yml)
+belong to `KentoYana/homebrew-tap`. This repository owns the Python package,
+tests, regression tool, documentation, and release archives. Maintain the live
+Formula in the tap; do not copy its implementation into this guide.
 
-## Release prerequisites
+This guide covers preparation of 8.0.2 and subsequent releases. Completing a
+checklist or changing a version string is not evidence that the new artifacts
+have passed validation. The [2026-10-31 validation report](homebrew-validation.md)
+and [machine-readable record](validation/homebrew-2026-10-31.json) describe
+**8.0.1_1**, including its exact comparison with the pinned pip installation.
+They are historical evidence, not an 8.0.2 test result.
 
-Before publishing a Formula:
+## Two dependency policies
 
-1. Finish validation while the Python version is `8.0.0.dev0`.
-2. Change the package version to `8.0.0` only when the release is ready.
-3. Build and test both the wheel and source distribution.
-4. Create the signed or annotated `v8.0.0` tag only after release approval.
-5. Publish a stable GitHub release archive and record its SHA-256 checksum.
-6. Add `Formula/spotscanner.rb` to `KentoYana/homebrew-tap`.
-7. Run `brew audit --strict --online KentoYana/tap/spotscanner`,
-   `brew install --build-from-source KentoYana/tap/spotscanner`, and
-   `brew test KentoYana/tap/spotscanner` on a clean macOS system.
+The pip package retains the exact dependencies in `pyproject.toml`:
 
-A release-preparation branch does not itself create a tag or Formula. Create
-those only after the final package and regression checks pass.
+- `numpy==2.5.1`
+- `opencv-python-headless==5.0.0.93` (`cv2.__version__` reports `5.0.0`)
 
-## Dependency model
+These pins preserve the validated numerical runtime. The application's pip CI
+and exact dependency-version assertions remain in place. A dependency change
+requires its own compatibility evidence; do not widen pins or assertions just
+to make the Homebrew environment pass pip-specific checks.
 
-The Formula should declare Homebrew dependencies rather than use the user's
-Python, pyenv, or pip environment. The selected SpotScanner 8 runtime is:
+Homebrew instead supplies `numpy`, `opencv`, and a matching versioned Python,
+with `python-setuptools` available for the build. The current Formula selects
+**Python 3.15**, matching Homebrew OpenCV's Python bindings. Its dependency
+declaration, venv interpreter, and runtime assertions must agree. Recheck the
+current OpenCV dependency metadata before every Formula update, and use the
+declared interpreter's matching site packages for Homebrew's compiled OpenCV
+bindings.
 
-- `python@3.14` (3.14.6 when this plan was validated)
-- `numpy` 2.5.1
-- `opencv` 5.0.0
-- `python-setuptools` 83.0.0 as a build dependency
+The Formula creates its `libexec` venv with `--system-site-packages`, verifies
+NumPy/OpenCV imports during installation, and installs the source with
+`--no-deps --no-build-isolation`. It exposes the installed console command in
+`bin`. Do not install replacement pip libraries into that venv. Homebrew's
+versions may differ from the pip pins, and native OpenCV is not the
+`opencv-python-headless` pip distribution. Consequently `pip check` in this
+shared environment is not the Homebrew compatibility gate; actual imports,
+both-mode Formula tests, and numerical regression provide that evidence.
 
-These Homebrew versions currently match the runtime used for the full pipette
-and replicator regressions. The Formula should declare `numpy` directly because
-SpotScanner imports it directly, even though `opencv` also depends on it. Since
-Homebrew dependencies can advance independently, every Formula revision must
-rerun the numerical release gates and update this plan if the resolved runtime
-no longer matches.
+## Prepare and validate release artifacts
 
-Install SpotScanner below the Formula's `libexec` prefix with access to the
-declared Homebrew Python site packages, then link only the generated
-`spotscanner` command into `bin`. Installation must use `--no-deps` and must not
-download anything during the Formula build.
+1. Start from a work branch with existing changes accounted for. Update the
+   application version, current-release documentation, and version assertions
+   together. Keep historical validation records labeled with their tested
+   versions. Do not change algorithms, defaults, CSV schemas, or numerical
+   reference values as part of a packaging release.
+2. Run the complete pip test suite in an isolated environment with the declared
+   dependencies. Run `python -m pip check` there. Preserve the existing Linux
+   and macOS pip CI matrix.
+3. Build both artifacts into a fresh output directory with `python -m build`.
+   Inspect the wheel's `METADATA`, entry point, version, Python requirement,
+   and dependency pins. Inspect the sdist's `PKG-INFO` and build configuration
+   for the same values. Verify that both contain all packaged markers and
+   templates. The sdist must also include `tools/compare_v7_results.py`, the
+   Markdown guides, and `docs/validation/*.json`; inspect archive members rather
+   than assuming that a successful build included them.
+4. Install the wheel and the sdist separately into fresh pip venvs. From outside
+   the checkout, use each installed command to check imports, help/version,
+   packaged resources, and synthetic pipette and replicator analyses. Check
+   diagnostic PNG decoding/dimensions and CSV headers, ordered coordinates,
+   row counts, and all expected numerical values. `--version` alone does not
+   load the analysis libraries.
+5. For numerical validation, use the installed-command mode described in
+   [the regression guide](v7-regression.md):
 
-The exact technique must be retested against the Homebrew version used when the
-Formula is published. Homebrew currently documents
-`virtualenv_install_with_resources` as private to Homebrew's own repository, so
-a third-party tap should not assume that helper is a stable API. An explicit
-`python@3.14 -m venv --system-site-packages` under `libexec`, followed by a
-local, dependency-free pip install, is the leading tap implementation.
+   ```bash
+   python tools/compare_v7_results.py /path/to/Resource_Article_DDT_hH3-K4R_01 \
+     --executable /path/to/release-venv/bin/spotscanner \
+     --tolerance 0.12 --report /tmp/spotscanner-release-pipette.json
+   ```
 
-## Draft Formula shape
+   Run replicator cases with the documented aliases and existing 0.17 envelope
+   as well. Retain runtime provenance and full difference statistics. Keep
+   synthetic success separate from real-image evidence, and record unavailable
+   fixtures, archived `NA` cells, and incompatible legacy schemas explicitly.
+   For unchanged analysis code, compare current pip and Homebrew outputs
+   directly, ignoring only timestamps, including decoded diagnostic pixels.
+6. Obtain fresh successful application PR CI for the release changes and verify
+   the resulting default-branch CI after merge. Record the tested commits and
+   artifact checksums. Earlier 8.0.1 CI does not validate an 8.0.2 artifact.
 
-This is a planning sketch, not an installable Formula. The URL and checksum are
-intentionally absent until a final release exists.
+## Publish an immutable release and update the tap
 
-```ruby
-class Spotscanner < Formula
-  desc "Quantitative analysis of fungal spot-test plates"
-  homepage "https://github.com/KentoYana/spotscanner"
-  url "RELEASE_ARCHIVE_URL"
-  sha256 "RELEASE_ARCHIVE_SHA256"
-  license "MIT"
+After release authorization and the required checks pass, create an annotated
+tag such as `v8.0.2` at the intended release commit. Verify that the tag, source
+archive, wheel, and recorded version describe the same source. Publish the
+tested wheel and sdist as GitHub release assets, record their SHA-256 checksums,
+and verify the uploaded assets against those checksums. Do not replace an
+already published archive under the same release URL; publish a new version
+when the archive's contents must change.
 
-  depends_on "python-setuptools" => :build
-  depends_on "numpy"
-  depends_on "opencv"
-  depends_on "python@3.14"
+In the tap's work branch, update the Formula's release-asset URL and SHA-256 to
+the verified sdist. Remove the previous `revision` when advancing the upstream
+version: `8.0.1_1` becomes `8.0.2`, not `8.0.2_1`. A packaging-only correction
+that retains the same upstream version instead increments `revision`, allowing
+existing users to receive it through `brew upgrade`.
 
-  def install
-    python = Formula["python@3.14"].opt_bin/"python3.14"
-    system python, "-m", "venv", "--system-site-packages", libexec
-    system libexec/"bin/python", "-m", "pip", "install",
-           "--no-deps", "--no-build-isolation", "."
-    bin.install_symlink libexec/"bin/spotscanner"
-  end
+Register the checked-out tap commit on a clean macOS test machine and verify
+that Homebrew is reading that Formula, rather than an older installed tap
+checkout. Refresh dependency metadata, then run:
 
-  test do
-    assert_match "SpotScanner v#{version}", shell_output("#{bin}/spotscanner --version")
-    assert_match "usage: spotscanner", shell_output("#{bin}/spotscanner --help")
-  end
-end
+```bash
+brew audit --strict --online KentoYana/tap/spotscanner
+brew install --build-from-source KentoYana/tap/spotscanner
+brew test --verbose KentoYana/tap/spotscanner
 ```
 
-Validate the final syntax against the current
-[Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook) and
-[Python virtualenv API documentation](https://docs.brew.sh/rubydoc/Language/Python/Virtualenv.html).
+Use a fresh installation or explicitly verify the upgrade/reinstallation path
+when a prior keg is present. Record the actual installed Python, NumPy, OpenCV,
+package paths, and Formula version. Run the installed release against the
+available real-image baselines and pinned pip reference. Investigate numerical
+drift before changing any reference or tolerance. Limit dependency changes to
+those needed by the Formula; a global Homebrew upgrade or package cleanup is
+not part of release verification.
 
-## Tap installation commands
+Require fresh tap PR CI for the new URL/checksum and verify the corresponding
+default-branch run after merge. The application and tap checks cover separate
+distribution paths; success in one does not substitute for success in the
+other. Record release-specific results only after those runs finish.
 
-The unambiguous installation command is intended to be:
+## Continuous dependency checks
+
+The tap workflow installs the checked-out Formula on macOS, checks that its
+Python dependency matches current OpenCV metadata, records actual runtime
+imports, and runs both-mode `brew test`. Logs are uploaded as Actions artifacts.
+It runs for Formula/workflow changes on pushes and pull requests, supports
+manual `workflow_dispatch`, and runs **twice yearly: January 1 and July 1 at
+03:23 UTC (12:23 JST)**. Its cron expression is `23 3 1 1,7 *`; this is a
+semiannual schedule, not a weekly check. Scheduled runs use the default branch.
+
+Use manual dispatch after a relevant Homebrew dependency update or before a
+release. The hosted gate detects import failures and numerical drift on its
+synthetic fixture; it does not include the external real-image collections.
+Reproduce and investigate failures using the recorded runtime versions, then
+repeat the real-image regression before accepting changed dependencies.
+
+## User installation and updates
 
 ```bash
 brew install KentoYana/tap/spotscanner
 ```
 
-Current Homebrew releases apply an explicit trust model to taps. If a short
-Formula name is desired after tapping, follow the then-current
-[tap trust instructions](https://docs.brew.sh/Taps); fully qualified Formula
-installation avoids ambiguity with `homebrew/core`.
+After the updated Formula reaches the tap's default branch, existing users run:
 
-## Path toward homebrew/core
+```bash
+brew update
+brew upgrade KentoYana/tap/spotscanner
+brew test KentoYana/tap/spotscanner
+```
 
-After the tap has a stable release history:
-
-- keep release URLs and checksums immutable;
-- demonstrate usage beyond the repository author;
-- use only declared Homebrew dependencies and supported platform facilities;
-- ensure Formula tests exercise real installed behavior;
-- follow the current
-  [acceptable formula requirements](https://docs.brew.sh/Acceptable-Formulae);
-- submit the Formula to `homebrew/core` separately from SpotScanner source
-  changes.
+`spotscanner --version` reports the upstream application version;
+`brew list --versions spotscanner` additionally shows any Formula revision.

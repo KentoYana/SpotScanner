@@ -7,7 +7,7 @@ grid, measures colony growth, and writes CSV data and diagnostic images.
 SpotScanner 8.0 is distributed through the
 [KentoYana Homebrew tap](https://github.com/KentoYana/homebrew-tap) and as a
 standard Python package. Both installation methods provide a `spotscanner`
-command. The current release is `8.0.1`.
+command. The current release is `8.0.2`.
 
 ## Features
 
@@ -45,8 +45,8 @@ dependency set, so the first installation may download more than the
 SpotScanner source archive alone suggests.
 
 The Formula's Python minor version must match Homebrew's OpenCV bindings.
-SpotScanner 8.0.1 revision 1 uses Python 3.15; the revision fixes the earlier
-3.14 environment without changing the application version. Homebrew shares
+SpotScanner 8.0.2 uses Python 3.15, continuing the repair first shipped in
+8.0.1 revision 1 for the earlier 3.14 environment. Homebrew shares
 its current NumPy and OpenCV instead of installing the pip dependencies below.
 This runtime is checked separately with `brew test` and real-image regression;
 it does not promise the exact dependency versions of a pip installation.
