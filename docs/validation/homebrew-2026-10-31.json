@@ -1,0 +1,246 @@
+{
+  "date": "2026-10-31",
+  "platform": "arm64 macOS 26.7.2",
+  "application_version": "8.0.1",
+  "formula_revision": 1,
+  "pip_pins": {
+    "numpy": "2.5.1",
+    "opencv-python-headless": "5.0.0.93"
+  },
+  "homebrew_opencv_package": "5.0.0_12",
+  "formula_source_sha256": "14a38895dd6451a573dcbb74090edf18a944b4ab46d523dc6684832d58204fde",
+  "application_base_commit": "5147f1f",
+  "tap_base_commit": "28a9903",
+  "runs": {
+    "brew": {
+      "pipette": {
+        "execution_mode": "installed",
+        "spotscanner_version": "8.0.1",
+        "python_version": "3.15.2",
+        "numpy_version": "2.5.4",
+        "opencv_version": "5.0.0",
+        "cases": 304,
+        "cells": 7296,
+        "compared_cells": 7285,
+        "reference_na_cells": 11,
+        "threshold_counts": {
+          "6": 23,
+          "7": 281
+        },
+        "tolerance": 0.12,
+        "exact_different_cells": 1643,
+        "exact_cases_with_differences": 179,
+        "different_cells": 0,
+        "absolute_difference_counts": {
+          "0.01": 873,
+          "0.02": 350,
+          "0.03": 175,
+          "0.04": 111,
+          "0.05": 57,
+          "0.06": 27,
+          "0.07": 21,
+          "0.08": 10,
+          "0.09": 10,
+          "0.1": 4,
+          "0.11": 4,
+          "0.12": 1
+        },
+        "max_absolute_difference": 0.12,
+        "mean_absolute_difference": 0.0046698695950583395,
+        "errors": [],
+        "differences": [],
+        "diagnostic_images_verified": 304,
+        "diagnostic_errors": [],
+        "skipped_legacy_cases": 0,
+        "full_report": "brew/pipette.json",
+        "full_report_sha256": "b8199f77e94cafe326c8cda68f705b2be64095c188b7dbbef4e753fd7af025c6"
+      },
+      "replicator": {
+        "execution_mode": "installed",
+        "spotscanner_version": "8.0.1",
+        "python_version": "3.15.2",
+        "numpy_version": "2.5.4",
+        "opencv_version": "5.0.0",
+        "cases": 42,
+        "cells": 4032,
+        "compared_cells": 4032,
+        "reference_na_cells": 0,
+        "threshold_counts": {
+          "6": 11,
+          "7": 13,
+          "8": 18
+        },
+        "tolerance": 0.17,
+        "exact_different_cells": 1353,
+        "exact_cases_with_differences": 42,
+        "different_cells": 0,
+        "absolute_difference_counts": {
+          "0.01": 822,
+          "0.02": 281,
+          "0.03": 106,
+          "0.04": 52,
+          "0.05": 30,
+          "0.06": 27,
+          "0.07": 13,
+          "0.08": 5,
+          "0.09": 6,
+          "0.1": 2,
+          "0.11": 2,
+          "0.12": 2,
+          "0.13": 1,
+          "0.15": 1,
+          "0.17": 3
+        },
+        "max_absolute_difference": 0.17,
+        "mean_absolute_difference": 0.00632936507936508,
+        "errors": [],
+        "differences": [],
+        "diagnostic_images_verified": 42,
+        "diagnostic_errors": [],
+        "skipped_legacy_cases": 102,
+        "full_report": "brew/replicator.json",
+        "full_report_sha256": "ab8bf61e9b550b3c03f61ce4ab32018b17250e89ed2d4fd9ffd19b3d8cf89cd4"
+      }
+    },
+    "pip": {
+      "pipette": {
+        "execution_mode": "installed",
+        "spotscanner_version": "8.0.1",
+        "python_version": "3.14.10",
+        "numpy_version": "2.5.1",
+        "opencv_version": "5.0.0",
+        "cases": 304,
+        "cells": 7296,
+        "compared_cells": 7285,
+        "reference_na_cells": 11,
+        "threshold_counts": {
+          "6": 23,
+          "7": 281
+        },
+        "tolerance": 0.12,
+        "exact_different_cells": 1643,
+        "exact_cases_with_differences": 179,
+        "different_cells": 0,
+        "absolute_difference_counts": {
+          "0.01": 873,
+          "0.02": 350,
+          "0.03": 175,
+          "0.04": 111,
+          "0.05": 57,
+          "0.06": 27,
+          "0.07": 21,
+          "0.08": 10,
+          "0.09": 10,
+          "0.1": 4,
+          "0.11": 4,
+          "0.12": 1
+        },
+        "max_absolute_difference": 0.12,
+        "mean_absolute_difference": 0.0046698695950583395,
+        "errors": [],
+        "differences": [],
+        "diagnostic_images_verified": 304,
+        "diagnostic_errors": [],
+        "skipped_legacy_cases": 0,
+        "full_report": "pip/real-pipette.json",
+        "full_report_sha256": "c67e5a23754e2626d42f060fd8d3aae161ed6a5114778f3b0dd07486c01c87cf"
+      },
+      "replicator": {
+        "execution_mode": "installed",
+        "spotscanner_version": "8.0.1",
+        "python_version": "3.14.10",
+        "numpy_version": "2.5.1",
+        "opencv_version": "5.0.0",
+        "cases": 42,
+        "cells": 4032,
+        "compared_cells": 4032,
+        "reference_na_cells": 0,
+        "threshold_counts": {
+          "6": 11,
+          "7": 13,
+          "8": 18
+        },
+        "tolerance": 0.17,
+        "exact_different_cells": 1353,
+        "exact_cases_with_differences": 42,
+        "different_cells": 0,
+        "absolute_difference_counts": {
+          "0.01": 822,
+          "0.02": 281,
+          "0.03": 106,
+          "0.04": 52,
+          "0.05": 30,
+          "0.06": 27,
+          "0.07": 13,
+          "0.08": 5,
+          "0.09": 6,
+          "0.1": 2,
+          "0.11": 2,
+          "0.12": 2,
+          "0.13": 1,
+          "0.15": 1,
+          "0.17": 3
+        },
+        "max_absolute_difference": 0.17,
+        "mean_absolute_difference": 0.00632936507936508,
+        "errors": [],
+        "differences": [],
+        "diagnostic_images_verified": 42,
+        "diagnostic_errors": [],
+        "skipped_legacy_cases": 102,
+        "full_report": "pip/real-replicator.json",
+        "full_report_sha256": "36ee474d4004088539c9930d11b559520a9cd4048a0560ad7c5ba4120fa27c4e"
+      }
+    }
+  },
+  "runtime_comparisons": {
+    "pipette": {
+      "cases": 304,
+      "cells": 7296,
+      "numeric_differences": [],
+      "metadata_differences": [],
+      "images_equal": 304,
+      "image_differences": [],
+      "max_absolute_difference": "0"
+    },
+    "replicator": {
+      "cases": 42,
+      "cells": 4032,
+      "numeric_differences": [],
+      "metadata_differences": [],
+      "images_equal": 42,
+      "image_differences": [],
+      "max_absolute_difference": "0"
+    }
+  },
+  "github_hosted_ci_run": true,
+  "package_content_comparison": {
+    "compared_package_files": 27,
+    "brew_only": [],
+    "pip_only": [],
+    "different": []
+  },
+  "github_hosted_ci": {
+    "application": {
+      "commit": "ab6c9d045eaffd1e4a9ea1281960576d89f50138",
+      "pr_run": "https://github.com/KentoYana/SpotScanner/actions/runs/41175030183",
+      "push_run": "https://github.com/KentoYana/SpotScanner/actions/runs/41174960107",
+      "conclusion": "success",
+      "jobs_passed": 5
+    },
+    "homebrew": {
+      "commit": "362c35667e2f8885e85b15bb5d90326b75b0ab8c",
+      "pr_run": "https://github.com/KentoYana/homebrew-tap/actions/runs/41175213028",
+      "push_run": "https://github.com/KentoYana/homebrew-tap/actions/runs/41175212766",
+      "conclusion": "success",
+      "platform": "arm64 macOS 26.6.2",
+      "python": "3.15.2",
+      "numpy": "2.5.4",
+      "opencv": "5.0.0",
+      "synthetic_cells_verified": 120,
+      "artifact_id": 13031644934,
+      "artifact_sha256": "553614d5ac274bc3438c6abc8a18079b1f15852c2bd1c60165d37dab9edaf2df"
+    },
+    "ci_failure_fixes_required": false
+  }
+}
