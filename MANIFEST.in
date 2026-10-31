@@ -1,2 +1,2 @@
-recursive-include docs *.md
+recursive-include docs *.md *.json
 include tools/compare_v7_results.py

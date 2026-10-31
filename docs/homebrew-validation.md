@@ -1,5 +1,10 @@
 # Homebrew runtime validation — 2026-10-31
 
+This record describes the original 8.0.1_1 repair and its validation. The
+versions and results below are historical evidence, not a relabeling of those
+runs as 8.0.2. For the current release procedure, see
+[Homebrew distribution and release maintenance](homebrew.md).
+
 ## Cause and distribution policy
 
 The installed `opencv` 5.0.0_12 supplies its Python bindings for Python 3.15.
