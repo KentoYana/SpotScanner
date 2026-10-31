@@ -213,11 +213,34 @@
       "max_absolute_difference": "0"
     }
   },
-  "github_hosted_ci_run": false,
+  "github_hosted_ci_run": true,
   "package_content_comparison": {
     "compared_package_files": 27,
     "brew_only": [],
     "pip_only": [],
     "different": []
+  },
+  "github_hosted_ci": {
+    "application": {
+      "commit": "ab6c9d045eaffd1e4a9ea1281960576d89f50138",
+      "pr_run": "https://github.com/KentoYana/SpotScanner/actions/runs/41175030183",
+      "push_run": "https://github.com/KentoYana/SpotScanner/actions/runs/41174960107",
+      "conclusion": "success",
+      "jobs_passed": 5
+    },
+    "homebrew": {
+      "commit": "362c35667e2f8885e85b15bb5d90326b75b0ab8c",
+      "pr_run": "https://github.com/KentoYana/homebrew-tap/actions/runs/41175213028",
+      "push_run": "https://github.com/KentoYana/homebrew-tap/actions/runs/41175212766",
+      "conclusion": "success",
+      "platform": "arm64 macOS 26.6.2",
+      "python": "3.15.2",
+      "numpy": "2.5.4",
+      "opencv": "5.0.0",
+      "synthetic_cells_verified": 120,
+      "artifact_id": 13031644934,
+      "artifact_sha256": "553614d5ac274bc3438c6abc8a18079b1f15852c2bd1c60165d37dab9edaf2df"
+    },
+    "ci_failure_fixes_required": false
   }
 }

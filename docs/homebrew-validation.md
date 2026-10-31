@@ -128,13 +128,29 @@ It performs no global Homebrew upgrade or cleanup.
 
 The workflow YAML and shell blocks were checked locally, and the Python
 compatibility guard was checked against both matching and mismatching metadata.
-GitHub-hosted execution has not been run; scheduling becomes active only once
-the workflow reaches the default branch. The weekly synthetic gate detects
+GitHub-hosted validation subsequently passed on 2026-10-31:
+
+- [Application PR CI](https://github.com/KentoYana/SpotScanner/actions/runs/41175030183)
+  at `ab6c9d045eaffd1e4a9ea1281960576d89f50138`: all five jobs passed
+  (Linux Python 3.12/3.13/3.14, macOS Python 3.14, wheel/sdist build).
+  The corresponding [push run](https://github.com/KentoYana/SpotScanner/actions/runs/41174960107)
+  also passed.
+- [Homebrew PR CI](https://github.com/KentoYana/homebrew-tap/actions/runs/41175213028)
+  at `362c35667e2f8885e85b15bb5d90326b75b0ab8c`: the exact-checkout guard,
+  Python dependency guard, installation, runtime imports, both-mode `brew test`,
+  and artifact upload passed on arm64 macOS 26.6.2. The installed runtime was
+  Python 3.15.2, NumPy 2.5.4, and OpenCV 5.0.0. The corresponding
+  [push run](https://github.com/KentoYana/homebrew-tap/actions/runs/41175212766)
+  also passed. No CI failure required a code change or rerun.
+
+Weekly scheduling becomes active only once the workflow reaches the default
+branch. The weekly synthetic gate detects
 import/ABI failures and drift on its fixture; it does not run the external
 real-image collections. Future dependency changes still require investigation
 and a real-image regression before accepting changed reference values.
 
-Validation was on arm64 macOS 26.7.2. It does not establish compatibility
+Full real-image validation was on arm64 macOS 26.7.2; the hosted Homebrew
+synthetic tests additionally passed on arm64 macOS 26.6.2. This does not establish compatibility
 for every CPU/OS, image collection, or future dependency release. The pip
 version assertions remain a pip-specific gate; use the Formula tests for the
 Homebrew distribution.
